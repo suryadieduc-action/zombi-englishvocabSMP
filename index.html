@@ -2,7 +2,14 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="screen-orientation" content="landscape">
+<meta name="x5-orientation" content="landscape">
+<meta name="full-screen" content="yes">
+<meta name="x5-fullscreen" content="true">
+<meta name="360-fullscreen" content="true">
 <title>Word Defense - English Vocabulary PvZ</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -11,7 +18,31 @@
     width: 100%; height: 100%;
     background: #1a1a2e;
     overflow: hidden;
-    display: flex; justify-content: center; align-items: center;
+    position: fixed;
+    touch-action: manipulation;
+  }
+
+  /* ============ AUTO-ROTATE WRAPPER ============ */
+  /* Kalau HP portrait, rotate seluruh game 90° */
+  #rotateWrapper {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transform-origin: center center;
+    transition: transform 0.3s;
+  }
+
+  /* Portrait: rotate 90° + swap width/height */
+  body.force-landscape #rotateWrapper {
+    width: 100vh;
+    height: 100vw;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(90deg);
   }
 
   #stage {
@@ -23,6 +54,14 @@
     background: #2d5a27;
     overflow: hidden;
     box-shadow: 0 0 40px rgba(0,0,0,0.8);
+  }
+
+  /* Kalau force-landscape, stage jadi ukuran landscape */
+  body.force-landscape #stage {
+    width: 100vh;
+    height: 56.25vh;
+    max-width: 100vh;
+    max-height: 56.25vh;
   }
 
   #stage.fullscreen {
@@ -122,7 +161,7 @@
   }
   #fsBtn:hover { background: rgba(255,255,255,0.3); }
 
-  /* ============ LANES (area utama) ============ */
+  /* ============ LANES ============ */
   #lanes {
     position: relative;
     flex: 1 1 auto;
@@ -152,7 +191,6 @@
     pointer-events: none;
   }
 
-  /* ============ TANAMAN ============ */
   .plant {
     position: absolute;
     left: 1.5%;
@@ -170,7 +208,6 @@
     100% { transform: translateY(-50%) scale(1); }
   }
 
-  /* ============ ZOMBIE ============ */
   .zombie {
     position: absolute;
     height: 90%;
@@ -183,7 +220,6 @@
   .zombie svg { width: 100%; height: 100%; display: block; }
   .zombie.hit { animation: shake 0.3s; }
 
-  /* Animasi mati SERAGAM untuk semua tipe */
   .zombie.dying {
     animation: dieCommon 0.7s forwards;
     pointer-events: none;
@@ -228,7 +264,6 @@
     pointer-events: none;
   }
 
-  /* ============ BOTTOM UI ============ */
   #bottomUI {
     position: relative;
     flex: 0 0 auto;
@@ -298,7 +333,6 @@
     border-radius: 6px;
   }
 
-  /* ============ OVERLAY ============ */
   .overlay {
     position: absolute; inset: 0;
     background: rgba(0,0,0,0.88);
@@ -379,7 +413,6 @@
     pointer-events: none;
   }
 
-  /* ============ ACHIEVEMENT POPUP ============ */
   #achievementPopup {
     position: absolute;
     top: 10%;
@@ -427,7 +460,6 @@
     opacity: 0.85;
   }
 
-  /* ============ ACHIEVEMENT PANEL ============ */
   #achPanel {
     position: absolute;
     top: 10%;
@@ -488,7 +520,48 @@
   #achPanel::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 3px; }
   #achPanel::-webkit-scrollbar-thumb { background: #ffd700; border-radius: 3px; }
 
-  /* ============ ROTATE HINT ============ */
+  /* ============ TAP TO START OVERLAY (Fullscreen prompt) ============ */
+  #tapToStart {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.95);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: white; z-index: 9999;
+    text-align: center; padding: 20px;
+    cursor: pointer;
+  }
+  #tapToStart .big-icon {
+    font-size: clamp(60px, 10vw, 120px);
+    margin-bottom: 20px;
+    animation: pulseIcon 1.5s infinite;
+  }
+  @keyframes pulseIcon {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+  #tapToStart h1 {
+    font-size: clamp(24px, 4vw, 48px);
+    color: #ffd700;
+    margin-bottom: 15px;
+    text-shadow: 3px 3px 0 #000;
+  }
+  #tapToStart p {
+    font-size: clamp(14px, 1.8vw, 22px);
+    margin-bottom: 10px;
+    opacity: 0.9;
+  }
+  #tapToStart .hint {
+    margin-top: 30px;
+    font-size: clamp(12px, 1.4vw, 18px);
+    color: #44ff44;
+    animation: blink 1s infinite;
+  }
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ============ ROTATE HINT (kalau auto-rotate gagal) ============ */
   #rotateHint {
     position: fixed; inset: 0;
     background: #1a1a2e;
@@ -496,7 +569,7 @@
     display: none;
     flex-direction: column;
     align-items: center; justify-content: center;
-    z-index: 9999;
+    z-index: 99999;
     text-align: center;
     padding: 20px;
   }
@@ -511,88 +584,204 @@
   }
   #rotateHint h2 { font-size: 22px; margin-bottom: 10px; color: #ffd700; }
   #rotateHint p { font-size: 15px; opacity: 0.8; }
-
-  @media (max-aspect-ratio: 1/1) and (max-width: 900px) {
-    #rotateHint { display: flex; }
-  }
 </style>
 </head>
 <body>
 
-<div id="rotateHint">
-  <div class="icon">📱</div>
-  <h2>Putar HP ke Mode Landscape</h2>
-  <p>Game ini lebih seru dimainkan dalam posisi mendatar (landscape) 16:9</p>
+<!-- TAP TO START (fullscreen + lock orientation) -->
+<div id="tapToStart">
+  <div class="big-icon">🧟</div>
+  <h1>WORD DEFENSE</h1>
+  <p>Ketuk di mana saja untuk mulai</p>
+  <p style="color:#ffd700; font-size: clamp(12px, 1.5vw, 16px); margin-top:15px;">
+    Game akan otomatis masuk mode landscape
+  </p>
+  <div class="hint">👆 TAP ANYWHERE 👆</div>
 </div>
 
-<div id="stage">
-  <div id="game">
-    <div id="hud">
-      <div class="hud-left">
-        <div class="hud-item">🏆 Skor: <span id="score">0</span></div>
-        <div class="hud-item">❤️ Nyawa: <span id="lives">3</span></div>
-        <div class="hud-item">🌻 Sun: <span id="sun">50</span></div>
-        <div class="hud-item">🌊 Wave: <span id="wave">1</span></div>
+<div id="rotateWrapper">
+  <div id="stage">
+    <div id="game">
+      <div id="hud">
+        <div class="hud-left">
+          <div class="hud-item">🏆 Skor: <span id="score">0</span></div>
+          <div class="hud-item">❤️ Nyawa: <span id="lives">3</span></div>
+          <div class="hud-item">🌻 Sun: <span id="sun">50</span></div>
+          <div class="hud-item">🌊 Wave: <span id="wave">1</span></div>
+        </div>
+        <div class="hud-right">
+          <button id="achToggle" onclick="toggleAchPanel()">🏆 Achievement</button>
+          <button id="soundToggleBtn" onclick="toggleSound()">🔊 ON</button>
+          <button id="fsBtn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+        </div>
       </div>
-      <div class="hud-right">
-        <button id="achToggle" onclick="toggleAchPanel()">🏆 Achievement</button>
-        <button id="soundToggleBtn" onclick="toggleSound()">🔊 ON</button>
-        <button id="fsBtn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+
+      <div id="waveInfo">Level 1 — Noun Dasar</div>
+
+      <div id="lanes">
+        <div id="houseLine"></div>
       </div>
-    </div>
 
-    <div id="waveInfo">Level 1 — Noun Dasar</div>
+      <div id="bottomUI"></div>
 
-    <div id="lanes">
-      <div id="houseLine"></div>
-    </div>
+      <div id="achPanel" class="hidden">
+        <h3>🏆 ACHIEVEMENTS</h3>
+        <div id="achList"></div>
+      </div>
 
-    <div id="bottomUI"></div>
+      <div id="achievementPopup">
+        <div class="ach-icon">🏆</div>
+        <div class="ach-title">ACHIEVEMENT UNLOCKED!</div>
+        <div class="ach-name" id="achPopupName">-</div>
+        <div class="ach-desc" id="achPopupDesc">-</div>
+      </div>
 
-    <div id="achPanel" class="hidden">
-      <h3>🏆 ACHIEVEMENTS</h3>
-      <div id="achList"></div>
-    </div>
+      <div class="overlay" id="startScreen">
+        <h1>🧟 WORD DEFENSE 🧟</h1>
+        <h2>English Vocabulary PvZ</h2>
+        <p>Zombie kartun datang membawa <b>kata Indonesia</b>.</p>
+        <p>Tembak mereka dengan memilih <b>kata Inggris</b> yang benar!</p>
+        <p style="margin-top:1.5vh; color:#ffd700;">🎯 Sekali tembak langsung mati!</p>
+        <p style="color:#ff6666;">💀 Jawaban salah = Zombie maju!</p>
+        <button onclick="startGame()">▶ MULAI MAIN</button>
+      </div>
 
-    <div id="achievementPopup">
-      <div class="ach-icon">🏆</div>
-      <div class="ach-title">ACHIEVEMENT UNLOCKED!</div>
-      <div class="ach-name" id="achPopupName">-</div>
-      <div class="ach-desc" id="achPopupDesc">-</div>
-    </div>
+      <div class="overlay hidden" id="gameOverScreen">
+        <h1>💀 GAME OVER 💀</h1>
+        <h2 id="finalScore">Skor Akhir: 0</h2>
+        <p id="finalMsg">Belajar lagi ya, bro!</p>
+        <button onclick="restartGame()">🔄 MAIN LAGI</button>
+      </div>
 
-    <div class="overlay" id="startScreen">
-      <h1>🧟 WORD DEFENSE 🧟</h1>
-      <h2>English Vocabulary PvZ</h2>
-      <p>Zombie kartun datang membawa <b>kata Indonesia</b>.</p>
-      <p>Tembak mereka dengan memilih <b>kata Inggris</b> yang benar!</p>
-      <p style="margin-top:1.5vh; color:#ffd700;">🎯 Sekali tembak langsung mati!</p>
-      <p style="color:#ff6666;">💀 Jawaban salah = Zombie maju!</p>
-      <button onclick="startGame()">▶ MULAI MAIN</button>
-    </div>
-
-    <div class="overlay hidden" id="gameOverScreen">
-      <h1>💀 GAME OVER 💀</h1>
-      <h2 id="finalScore">Skor Akhir: 0</h2>
-      <p id="finalMsg">Belajar lagi ya, bro!</p>
-      <button onclick="restartGame()">🔄 MAIN LAGI</button>
-    </div>
-
-    <div class="overlay hidden" id="winScreen">
-      <h1>🎉 YOU WIN! 🎉</h1>
-      <h2 id="winScore">Skor Akhir: 0</h2>
-      <p id="winAch">Achievement terbuka: 0/12</p>
-      <button onclick="restartGame()">🔄 MAIN LAGI</button>
+      <div class="overlay hidden" id="winScreen">
+        <h1>🎉 YOU WIN! 🎉</h1>
+        <h2 id="winScore">Skor Akhir: 0</h2>
+        <p id="winAch">Achievement terbuka: 0/12</p>
+        <button onclick="restartGame()">🔄 MAIN LAGI</button>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
 /* ============================================================
-   WORD DEFENSE - English Vocabulary PvZ
-   Sekali tembak langsung mati + animasi seragam + fix layout
+   AUTO FULLSCREEN + AUTO LANDSCAPE UNTUK ANDROID
    ============================================================ */
 
+/* Deteksi Android/iOS */
+const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+const isAndroid = /Android/i.test(navigator.userAgent);
+
+/* Fungsi masuk fullscreen + lock orientation */
+async function enterFullscreenLandscape() {
+  const el = document.documentElement;
+
+  // 1. Coba fullscreen
+  try {
+    if (el.requestFullscreen) {
+      await el.requestFullscreen({ navigationUI: 'hide' });
+    } else if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+    } else if (el.msRequestFullscreen) {
+      el.msRequestFullscreen();
+    }
+  } catch (e) {
+    console.warn('Fullscreen gagal:', e);
+  }
+
+  // 2. Coba lock orientation (Android Chrome support)
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock('landscape');
+      console.log('Orientation locked to landscape');
+    }
+  } catch (e) {
+    console.warn('Orientation lock gagal:', e);
+    // Fallback: pakai CSS auto-rotate
+    applyCssRotation();
+  }
+}
+
+/* CSS auto-rotate kalau orientation lock gagal */
+function applyCssRotation() {
+  const isPortrait = window.innerHeight > window.innerWidth;
+  if (isPortrait) {
+    document.body.classList.add('force-landscape');
+  } else {
+    document.body.classList.remove('force-landscape');
+  }
+}
+
+/* Cek terus orientasi (kalau user muter HP manual) */
+function checkOrientation() {
+  const isPortrait = window.innerHeight > window.innerWidth;
+
+  // Kalau dalam fullscreen dan portrait, coba lock lagi
+  if (isPortrait) {
+    // Cek apakah orientation lock berhasil
+    const locked = screen.orientation && screen.orientation.type &&
+                   screen.orientation.type.startsWith('landscape');
+    if (!locked) {
+      // Pakai CSS rotate sebagai fallback
+      document.body.classList.add('force-landscape');
+    } else {
+      document.body.classList.remove('force-landscape');
+    }
+  } else {
+    document.body.classList.remove('force-landscape');
+  }
+}
+
+/* Event listener orientasi */
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', () => {
+  setTimeout(checkOrientation, 200);
+});
+if (screen.orientation) {
+  screen.orientation.addEventListener('change', checkOrientation);
+}
+
+/* ============ TAP TO START ============ */
+document.getElementById('tapToStart').addEventListener('click', async () => {
+  // 1. Init audio (butuh user gesture)
+  if (typeof Sound !== 'undefined') Sound.init();
+
+  // 2. Fullscreen + lock orientation
+  await enterFullscreenLandscape();
+
+  // 3. Cek orientasi setelah lock
+  setTimeout(checkOrientation, 300);
+
+  // 4. Sembunyikan overlay
+  document.getElementById('tapToStart').style.display = 'none';
+});
+
+/* ============================================================
+   FULLSCREEN TOGGLE MANUAL (tombol)
+   ============================================================ */
+async function toggleFullscreen() {
+  const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  if (!isFs) {
+    await enterFullscreenLandscape();
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+    document.body.classList.remove('force-landscape');
+  }
+}
+
+['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(evt => {
+  document.addEventListener(evt, () => {
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    document.getElementById('stage').classList.toggle('fullscreen', isFs);
+    setTimeout(checkOrientation, 200);
+  });
+});
+
+/* ============================================================
+   SOUND ENGINE
+   ============================================================ */
 const Sound = {
   ctx: null, enabled: true,
   init() {
@@ -667,7 +856,6 @@ const Sound = {
     if (s[i]) this[s[i]]();
   },
   playDeathSound(i) {
-    // Suara mati seragam
     this.noise(0.3, 0.12);
     this.sweep(400, 80, 0.4, 'triangle', 0.12);
   }
@@ -680,32 +868,13 @@ function toggleSound() {
   btn.classList.toggle('off', !Sound.enabled);
 }
 
-/* FULLSCREEN */
-function toggleFullscreen() {
-  const el = document.documentElement;
-  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-    if (el.requestFullscreen) el.requestFullscreen().catch(e => console.warn(e));
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    else if (el.msRequestFullscreen) el.msRequestFullscreen();
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('landscape').catch(e => console.warn(e));
-    }
-  } else {
-    if (document.exitFullscreen) document.exitFullscreen();
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-    else if (document.msExitFullscreen) document.msExitFullscreen();
-    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-  }
-}
+/* Sisa kode (BANK_SOAL, sprites, game logic) SAMA PERSIS dengan versi sebelumnya */
+/* Copy dari versi sebelumnya mulai dari BANK_SOAL sampai akhir */
+/* ... */
 
-['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(evt => {
-  document.addEventListener(evt, () => {
-    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
-    document.getElementById('stage').classList.toggle('fullscreen', isFs);
-  });
-});
-
-/* BANK SOAL */
+/* ============================================================
+   BANK SOAL
+   ============================================================ */
 const BANK_SOAL = {
   level1: {
     name: "Level 1 — Noun Dasar",
@@ -762,7 +931,6 @@ const BANK_SOAL = {
     ]
   }
 };
-
 const TOTAL_LANES = 5;
 const ZOMBIE_START_X_PERCENT = 85;
 const HOUSE_X_PERCENT = 6;
