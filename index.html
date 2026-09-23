@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Word Defense - English Vocabulary PvZ</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+  
+  html, body {
+    width: 100%; height: 100%;
+    background: #1a1a2e;
+    overflow: hidden;
+    display: flex; justify-content: center; align-items: center;
+  }
+
+  #stage {
+    position: relative;
+    width: 100vw;
+    height: 56.25vw;
+    max-height: 100vh;
+    max-width: 177.78vh;
+    background: #2d5a27;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(0,0,0,0.8);
+  }
+
+  #stage.fullscreen {
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
+  }
+
+  #stage.fullscreen #game {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 177.78vh;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 56.25vw;
+  }
+
+  #game {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(180deg, #7cb342 0%, #558b2f 100%);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #game::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle at 15% 15%, rgba(255,255,255,0.5) 0 2.5vw, transparent 2.5vw),
+      radial-gradient(circle at 25% 17%, rgba(255,255,255,0.5) 0 3vw, transparent 3vw),
+      radial-gradient(circle at 20% 20%, rgba(255,255,255,0.5) 0 2vw, transparent 2vw),
+      radial-gradient(circle at 75% 12%, rgba(255,255,255,0.4) 0 2.8vw, transparent 2.8vw),
+      radial-gradient(circle at 82% 15%, rgba(255,255,255,0.4) 0 2.2vw, transparent 2.2vw);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ============ HUD ============ */
+  #hud {
+    position: relative;
+    flex: 0 0 auto;
+    height: 7%;
+    min-height: 44px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 1.5%;
+    font-size: clamp(11px, 1.3vw, 16px);
+    z-index: 10;
+    backdrop-filter: blur(4px);
+    border-bottom: 2px solid rgba(0,0,0,0.4);
+  }
+  .hud-left, .hud-right {
+    display: flex; align-items: center; gap: 1.2vw;
+  }
+  .hud-item {
+    display: flex; align-items: center; gap: 0.4vw;
+    white-space: nowrap;
+  }
+  .hud-item span { font-weight: bold; color: #ffd700; }
+
+  #achToggle, #soundToggleBtn, #fsBtn {
+    cursor: pointer;
+    font-size: clamp(10px, 1.1vw, 14px);
+    font-weight: bold;
+    padding: 0.4vw 0.9vw;
+    border-radius: 8px;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  #achToggle {
+    background: rgba(255,215,0,0.15);
+    color: #ffd700;
+    border: 2px solid #ffd700;
+  }
+  #achToggle:hover { background: rgba(255,215,0,0.3); }
+
+  #soundToggleBtn {
+    background: rgba(0,255,0,0.15);
+    border: 2px solid #44ff44;
+    color: #44ff44;
+  }
+  #soundToggleBtn.off {
+    background: rgba(255,0,0,0.15);
+    border-color: #ff4444;
+    color: #ff4444;
+  }
+  #fsBtn {
+    background: rgba(255,255,255,0.15);
+    border: 2px solid white;
+    color: white;
+  }
+  #fsBtn:hover { background: rgba(255,255,255,0.3); }
+
+  /* ============ LANES (area utama) ============ */
+  #lanes {
+    position: relative;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    z-index: 2;
+    min-height: 0;
+    padding: 0.5% 0;
+  }
+  .lane {
+    flex: 1;
+    border-bottom: 2px dashed rgba(255,255,255,0.18);
+    position: relative;
+    min-height: 0;
+    overflow: visible;
+  }
+  .lane:nth-child(odd) { background: rgba(255,255,255,0.05); }
+  .lane:last-child { border-bottom: none; }
+
+  #houseLine {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 6%;
+    width: 4px;
+    background: repeating-linear-gradient(180deg, #ffd700 0 10px, transparent 10px 20px);
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  /* ============ TANAMAN ============ */
+  .plant {
+    position: absolute;
+    left: 1.5%;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 85%;
+    aspect-ratio: 1;
+    z-index: 3;
+  }
+  .plant svg { width: 100%; height: 100%; display: block; }
+  .plant.shoot { animation: plantShoot 0.2s; }
+  @keyframes plantShoot {
+    0% { transform: translateY(-50%) scale(1); }
+    50% { transform: translateY(-50%) scale(1.15) rotate(-5deg); }
+    100% { transform: translateY(-50%) scale(1); }
+  }
+
+  /* ============ ZOMBIE ============ */
+  .zombie {
+    position: absolute;
+    height: 90%;
+    aspect-ratio: 76 / 90;
+    z-index: 4;
+    top: 50%;
+    transform: translateY(-50%);
+    transform-origin: center bottom;
+  }
+  .zombie svg { width: 100%; height: 100%; display: block; }
+  .zombie.hit { animation: shake 0.3s; }
+
+  /* Animasi mati SERAGAM untuk semua tipe */
+  .zombie.dying {
+    animation: dieCommon 0.7s forwards;
+    pointer-events: none;
+  }
+  @keyframes dieCommon {
+    0% { opacity: 1; transform: translateY(-50%) rotate(0deg) scale(1); }
+    30% { transform: translateY(-50%) rotate(-15deg) scale(1.15); filter: brightness(1.5); }
+    60% { transform: translateY(-50%) rotate(20deg) scale(1.05); filter: brightness(1.3); }
+    100% { opacity: 0; transform: translateY(-50%) rotate(180deg) scale(0.2); filter: brightness(2); }
+  }
+
+  @keyframes shake {
+    0%,100% { transform: translateY(-50%) translateX(0); }
+    25% { transform: translateY(-50%) translateX(-8px); }
+    75% { transform: translateY(-50%) translateX(8px); }
+  }
+
+  .zombie .word-label {
+    position: absolute;
+    top: -20%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ffd700;
+    color: #3a2000;
+    font-weight: bold;
+    font-size: clamp(8px, 0.85vw, 13px);
+    padding: 0.15vw 0.5vw;
+    border-radius: 6px;
+    white-space: nowrap;
+    border: 2px solid #8a5a00;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    z-index: 6;
+  }
+
+  .bullet {
+    position: absolute;
+    width: 2.2%;
+    aspect-ratio: 1;
+    z-index: 6;
+    font-size: clamp(10px, 1.3vw, 20px);
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+
+  /* ============ BOTTOM UI ============ */
+  #bottomUI {
+    position: relative;
+    flex: 0 0 auto;
+    height: 22%;
+    min-height: 100px;
+    background: rgba(0,0,0,0.85);
+    display: flex; align-items: center; justify-content: center;
+    gap: 1.5%;
+    padding: 1% 2%;
+    z-index: 10;
+    flex-wrap: wrap;
+    backdrop-filter: blur(4px);
+    border-top: 2px solid rgba(0,0,0,0.4);
+  }
+  .answer-btn {
+    min-width: 13%;
+    padding: 1.2vh 1.5vw;
+    font-size: clamp(12px, 1.5vw, 22px);
+    font-weight: bold;
+    background: linear-gradient(180deg, #f0c040, #d49820);
+    color: #3a2000;
+    border: 3px solid #8a5a00;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    pointer-events: auto;
+    position: relative;
+    z-index: 11;
+    box-shadow: 0 4px 0 #8a5a00;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .answer-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 7px 0 #8a5a00, 0 8px 14px rgba(255,200,0,0.4);
+  }
+  .answer-btn:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #8a5a00;
+  }
+  .answer-btn.correct {
+    background: linear-gradient(180deg, #44dd44, #22aa22);
+    color: white; border-color: #006600;
+    box-shadow: 0 4px 0 #006600;
+  }
+  .answer-btn.wrong {
+    background: linear-gradient(180deg, #dd4444, #aa2222);
+    color: white; border-color: #660000;
+    box-shadow: 0 4px 0 #660000;
+  }
+  .answer-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+  .q-label {
+    color: #ffd700;
+    font-size: clamp(11px, 1.2vw, 17px);
+    font-weight: bold;
+    width: 100%;
+    text-align: center;
+    margin-bottom: 0.3vh;
+  }
+  .q-label span {
+    color: white;
+    font-size: clamp(13px, 1.6vw, 22px);
+    padding: 0.15vw 0.8vw;
+    background: rgba(255,255,255,0.15);
+    border-radius: 6px;
+  }
+
+  /* ============ OVERLAY ============ */
+  .overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.88);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: white; z-index: 100;
+    text-align: center; padding: 5%;
+  }
+  .overlay h1 { font-size: clamp(24px, 4.5vw, 56px); margin-bottom: 2%; color: #ffd700; text-shadow: 3px 3px 0 #000; }
+  .overlay h2 { font-size: clamp(16px, 3vw, 36px); margin-bottom: 1.5%; }
+  .overlay p { font-size: clamp(12px, 1.5vw, 18px); margin-bottom: 1%; line-height: 1.5; }
+  .overlay button {
+    margin-top: 3%;
+    padding: 1.5vh 3vw;
+    font-size: clamp(14px, 1.8vw, 24px);
+    font-weight: bold;
+    background: linear-gradient(180deg, #44dd44, #22aa22);
+    color: white; border: 3px solid #006600;
+    border-radius: 12px; cursor: pointer;
+    transition: transform 0.15s;
+    box-shadow: 0 5px 0 #006600;
+    font-family: inherit;
+  }
+  .overlay button:hover { transform: translateY(-2px); box-shadow: 0 7px 0 #006600; }
+  .hidden { display: none !important; }
+
+  .float-text {
+    position: absolute;
+    font-weight: bold;
+    font-size: clamp(12px, 1.5vw, 22px);
+    pointer-events: none;
+    animation: floatUp 1s ease-out forwards;
+    z-index: 20;
+    text-shadow: 2px 2px 0 #000;
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-60px); }
+  }
+
+  .splat {
+    position: absolute;
+    width: 5%;
+    aspect-ratio: 1;
+    background: radial-gradient(circle, #8b0000 0%, #4a0000 60%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: splatAnim 0.6s ease-out forwards;
+    z-index: 5;
+  }
+  @keyframes splatAnim {
+    0% { opacity: 1; transform: scale(0.3); }
+    100% { opacity: 0; transform: scale(1.5); }
+  }
+
+  .muzzle {
+    position: absolute;
+    width: 3%;
+    aspect-ratio: 1;
+    background: radial-gradient(circle, #ffff44 0%, #ff8800 50%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: muzzleAnim 0.2s forwards;
+    z-index: 7;
+  }
+  @keyframes muzzleAnim {
+    0% { opacity: 1; transform: scale(0.5); }
+    100% { opacity: 0; transform: scale(1.5); }
+  }
+
+  #waveInfo {
+    position: absolute; top: 1%; right: 1%;
+    color: white; font-size: clamp(10px, 1vw, 14px);
+    background: rgba(0,0,0,0.55);
+    padding: 0.5vh 1vw; border-radius: 8px;
+    z-index: 9;
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+  }
+
+  /* ============ ACHIEVEMENT POPUP ============ */
+  #achievementPopup {
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-200%);
+    background: linear-gradient(135deg, #ffd700, #ffaa00);
+    color: #3a2000;
+    padding: 1.5vh 2.5vw;
+    border-radius: 14px;
+    border: 3px solid #8a5a00;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 40px rgba(255,215,0,0.6);
+    z-index: 200;
+    text-align: center;
+    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    min-width: 25%;
+    pointer-events: none;
+  }
+  #achievementPopup.show {
+    transform: translateX(-50%) translateY(0);
+  }
+  #achievementPopup .ach-icon {
+    font-size: clamp(24px, 3vw, 42px);
+    line-height: 1;
+    margin-bottom: 0.5vh;
+    animation: achSpin 0.6s ease-out;
+  }
+  @keyframes achSpin {
+    0% { transform: rotate(-180deg) scale(0); }
+    100% { transform: rotate(0) scale(1); }
+  }
+  #achievementPopup .ach-title {
+    font-size: clamp(9px, 1vw, 13px);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    opacity: 0.8;
+    font-weight: bold;
+  }
+  #achievementPopup .ach-name {
+    font-size: clamp(14px, 1.6vw, 20px);
+    font-weight: bold;
+    margin: 0.3vh 0;
+  }
+  #achievementPopup .ach-desc {
+    font-size: clamp(10px, 1vw, 13px);
+    opacity: 0.85;
+  }
+
+  /* ============ ACHIEVEMENT PANEL ============ */
+  #achPanel {
+    position: absolute;
+    top: 10%;
+    left: 1.5%;
+    width: 26%;
+    max-height: 78%;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.92);
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    padding: 1.5%;
+    color: white;
+    z-index: 16;
+    backdrop-filter: blur(6px);
+    font-size: clamp(10px, 1vw, 13px);
+  }
+  #achPanel h3 {
+    color: #ffd700;
+    font-size: clamp(11px, 1.2vw, 15px);
+    margin-bottom: 1.5vh;
+    text-align: center;
+    border-bottom: 1px solid #ffd700;
+    padding-bottom: 1vh;
+  }
+  .ach-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.8vh 0.6vw;
+    margin-bottom: 0.6vh;
+    background: rgba(255,255,255,0.05);
+    border-radius: 6px;
+    border-left: 3px solid #555;
+    opacity: 0.5;
+  }
+  .ach-item.unlocked {
+    opacity: 1;
+    border-left-color: #ffd700;
+    background: rgba(255,215,0,0.1);
+  }
+  .ach-item .ai-icon {
+    font-size: clamp(16px, 1.8vw, 24px);
+    width: 8%;
+    text-align: center;
+  }
+  .ach-item .ai-text { flex: 1; }
+  .ach-item .ai-name {
+    font-weight: bold;
+    color: #ffd700;
+    font-size: clamp(10px, 1.1vw, 14px);
+  }
+  .ach-item .ai-desc {
+    font-size: clamp(9px, 0.9vw, 12px);
+    opacity: 0.8;
+  }
+
+  #achPanel::-webkit-scrollbar { width: 6px; }
+  #achPanel::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 3px; }
+  #achPanel::-webkit-scrollbar-thumb { background: #ffd700; border-radius: 3px; }
+
+  /* ============ ROTATE HINT ============ */
+  #rotateHint {
+    position: fixed; inset: 0;
+    background: #1a1a2e;
+    color: white;
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 9999;
+    text-align: center;
+    padding: 20px;
+  }
+  #rotateHint .icon {
+    font-size: 60px;
+    margin-bottom: 20px;
+    animation: rotateAnim 2s infinite;
+  }
+  @keyframes rotateAnim {
+    0%,100% { transform: rotate(0deg); }
+    50% { transform: rotate(90deg); }
+  }
+  #rotateHint h2 { font-size: 22px; margin-bottom: 10px; color: #ffd700; }
+  #rotateHint p { font-size: 15px; opacity: 0.8; }
+
+  @media (max-aspect-ratio: 1/1) and (max-width: 900px) {
+    #rotateHint { display: flex; }
+  }
+</style>
+</head>
+<body>
+
+<div id="rotateHint">
+  <div class="icon">📱</div>
+  <h2>Putar HP ke Mode Landscape</h2>
+  <p>Game ini lebih seru dimainkan dalam posisi mendatar (landscape) 16:9</p>
+</div>
+
+<div id="stage">
+  <div id="game">
+    <div id="hud">
+      <div class="hud-left">
+        <div class="hud-item">🏆 Skor: <span id="score">0</span></div>
+        <div class="hud-item">❤️ Nyawa: <span id="lives">3</span></div>
+        <div class="hud-item">🌻 Sun: <span id="sun">50</span></div>
+        <div class="hud-item">🌊 Wave: <span id="wave">1</span></div>
+      </div>
+      <div class="hud-right">
+        <button id="achToggle" onclick="toggleAchPanel()">🏆 Achievement</button>
+        <button id="soundToggleBtn" onclick="toggleSound()">🔊 ON</button>
+        <button id="fsBtn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+      </div>
+    </div>
+
+    <div id="waveInfo">Level 1 — Noun Dasar</div>
+
+    <div id="lanes">
+      <div id="houseLine"></div>
+    </div>
+
+    <div id="bottomUI"></div>
+
+    <div id="achPanel" class="hidden">
+      <h3>🏆 ACHIEVEMENTS</h3>
+      <div id="achList"></div>
+    </div>
+
+    <div id="achievementPopup">
+      <div class="ach-icon">🏆</div>
+      <div class="ach-title">ACHIEVEMENT UNLOCKED!</div>
+      <div class="ach-name" id="achPopupName">-</div>
+      <div class="ach-desc" id="achPopupDesc">-</div>
+    </div>
+
+    <div class="overlay" id="startScreen">
+      <h1>🧟 WORD DEFENSE 🧟</h1>
+      <h2>English Vocabulary PvZ</h2>
+      <p>Zombie kartun datang membawa <b>kata Indonesia</b>.</p>
+      <p>Tembak mereka dengan memilih <b>kata Inggris</b> yang benar!</p>
+      <p style="margin-top:1.5vh; color:#ffd700;">🎯 Sekali tembak langsung mati!</p>
+      <p style="color:#ff6666;">💀 Jawaban salah = Zombie maju!</p>
+      <button onclick="startGame()">▶ MULAI MAIN</button>
+    </div>
+
+    <div class="overlay hidden" id="gameOverScreen">
+      <h1>💀 GAME OVER 💀</h1>
+      <h2 id="finalScore">Skor Akhir: 0</h2>
+      <p id="finalMsg">Belajar lagi ya, bro!</p>
+      <button onclick="restartGame()">🔄 MAIN LAGI</button>
+    </div>
+
+    <div class="overlay hidden" id="winScreen">
+      <h1>🎉 YOU WIN! 🎉</h1>
+      <h2 id="winScore">Skor Akhir: 0</h2>
+      <p id="winAch">Achievement terbuka: 0/12</p>
+      <button onclick="restartGame()">🔄 MAIN LAGI</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   WORD DEFENSE - English Vocabulary PvZ
+   Sekali tembak langsung mati + animasi seragam + fix layout
+   ============================================================ */
+
+const Sound = {
+  ctx: null, enabled: true,
+  init() {
+    if (!this.ctx) {
+      try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+    }
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  tone(freq, duration, type = 'sine', volume = 0.15) {
+    if (!this.enabled || !this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(); osc.stop(this.ctx.currentTime + duration);
+  },
+  sweep(f1, f2, dur, type = 'sine', vol = 0.15) {
+    if (!this.enabled || !this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(f1, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(f2, this.ctx.currentTime + dur);
+    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+    osc.connect(gain); gain.connect(this.ctx.destination);
+    osc.start(); osc.stop(this.ctx.currentTime + dur);
+  },
+  noise(dur, vol = 0.1) {
+    if (!this.enabled || !this.ctx) return;
+    const bs = this.ctx.sampleRate * dur;
+    const buf = this.ctx.createBuffer(1, bs, this.ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bs; i++) data[i] = Math.random() * 2 - 1;
+    const src = this.ctx.createBufferSource(); src.buffer = buf;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.value = 1000;
+    src.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+    src.start();
+  },
+  shoot() { this.tone(880, 0.08, 'square', 0.1); this.tone(1200, 0.05, 'sawtooth', 0.08); },
+  correct() { this.tone(523, 0.1); setTimeout(() => this.tone(659, 0.1), 80); setTimeout(() => this.tone(784, 0.15), 160); },
+  wrong() { this.sweep(400, 100, 0.3, 'sawtooth', 0.15); },
+  levelUp() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.tone(f, 0.15, 'sine', 0.12), i * 100)); },
+  gameOver() { [400, 350, 300, 200].forEach((f, i) => setTimeout(() => this.tone(f, 0.3, 'sawtooth', 0.15), i * 200)); },
+  win() { [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => this.tone(f, 0.2, 'sine', 0.15), i * 120)); },
+  ach() { [784, 988, 1319, 1568].forEach((f, i) => setTimeout(() => this.tone(f, 0.2, 'triangle', 0.15), i * 100)); },
+  zombieBasic() { this.tone(150, 0.3, 'sawtooth', 0.08); setTimeout(() => this.tone(120, 0.3, 'sawtooth', 0.08), 200); },
+  zombiePunk() { this.sweep(200, 400, 0.2, 'sawtooth', 0.15); setTimeout(() => this.sweep(400, 150, 0.3, 'square', 0.12), 150); },
+  zombieChef() { this.tone(2000, 0.1, 'triangle', 0.15); setTimeout(() => this.tone(2500, 0.1, 'triangle', 0.12), 80); },
+  zombieProf() { this.tone(220, 0.4, 'sine', 0.1); setTimeout(() => this.tone(180, 0.4, 'sine', 0.1), 250); },
+  zombieDetektif() { this.tone(80, 0.3, 'sine', 0.15); setTimeout(() => this.tone(60, 0.4, 'sine', 0.15), 300); },
+  zombieNinja() { this.noise(0.2, 0.12); this.sweep(800, 200, 0.3, 'sine', 0.08); },
+  zombieRobot() {
+    this.tone(1000, 0.08, 'square', 0.08);
+    setTimeout(() => this.tone(1500, 0.08, 'square', 0.08), 100);
+    setTimeout(() => this.tone(1000, 0.08, 'square', 0.08), 200);
+    setTimeout(() => this.tone(2000, 0.15, 'square', 0.08), 300);
+  },
+  zombieBoss() {
+    const laugh = [200, 180, 220, 160, 240, 140, 200, 120];
+    laugh.forEach((f, i) => setTimeout(() => this.tone(f, 0.15, 'sawtooth', 0.18), i * 120));
+  },
+  playZombieSound(i) {
+    const s = ['zombieBasic', 'zombiePunk', 'zombieChef', 'zombieProf', 'zombieDetektif', 'zombieNinja', 'zombieRobot', 'zombieBoss'];
+    if (s[i]) this[s[i]]();
+  },
+  playDeathSound(i) {
+    // Suara mati seragam
+    this.noise(0.3, 0.12);
+    this.sweep(400, 80, 0.4, 'triangle', 0.12);
+  }
+};
+
+function toggleSound() {
+  Sound.enabled = !Sound.enabled;
+  const btn = document.getElementById('soundToggleBtn');
+  btn.textContent = Sound.enabled ? '🔊 ON' : '🔇 OFF';
+  btn.classList.toggle('off', !Sound.enabled);
+}
+
+/* FULLSCREEN */
+function toggleFullscreen() {
+  const el = document.documentElement;
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    if (el.requestFullscreen) el.requestFullscreen().catch(e => console.warn(e));
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    else if (el.msRequestFullscreen) el.msRequestFullscreen();
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(e => console.warn(e));
+    }
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if (document.msExitFullscreen) document.msExitFullscreen();
+    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+  }
+}
+
+['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(evt => {
+  document.addEventListener(evt, () => {
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    document.getElementById('stage').classList.toggle('fullscreen', isFs);
+  });
+});
+
+/* BANK SOAL */
+const BANK_SOAL = {
+  level1: {
+    name: "Level 1 — Noun Dasar",
+    spawnInterval: 3500, zombiesPerWave: 8,
+    words: [
+      { id: "Buku",    en: "Book",     wrong: ["Bag", "Pen"] },
+      { id: "Meja",    en: "Table",    wrong: ["Chair", "Door"] },
+      { id: "Kursi",   en: "Chair",    wrong: ["Table", "Desk"] },
+      { id: "Pintu",   en: "Door",     wrong: ["Window", "Wall"] },
+      { id: "Jendela", en: "Window",   wrong: ["Door", "Roof"] },
+      { id: "Tas",     en: "Bag",      wrong: ["Book", "Box"] },
+      { id: "Pensil",  en: "Pencil",   wrong: ["Pen", "Eraser"] },
+      { id: "Rumah",   en: "House",    wrong: ["Home", "Building"] },
+      { id: "Air",     en: "Water",    wrong: ["Fire", "Wind"] },
+      { id: "Makanan", en: "Food",     wrong: ["Drink", "Fruit"] },
+      { id: "Bunga",   en: "Flower",   wrong: ["Tree", "Grass"] },
+      { id: "Matahari",en: "Sun",      wrong: ["Moon", "Star"] },
+    ]
+  },
+  level2: {
+    name: "Level 2 — Verb Dasar",
+    spawnInterval: 3000, zombiesPerWave: 10,
+    words: [
+      { id: "Makan",    en: "Eat",    wrong: ["Drink", "Sleep"] },
+      { id: "Minum",    en: "Drink",  wrong: ["Eat", "Cook"] },
+      { id: "Tidur",    en: "Sleep",  wrong: ["Wake", "Rest"] },
+      { id: "Berlari",  en: "Run",    wrong: ["Walk", "Jump"] },
+      { id: "Berjalan", en: "Walk",   wrong: ["Run", "Sit"] },
+      { id: "Membaca",  en: "Read",   wrong: ["Write", "Draw"] },
+      { id: "Menulis",  en: "Write",  wrong: ["Read", "Type"] },
+      { id: "Berbicara",en: "Speak",  wrong: ["Listen", "Hear"] },
+      { id: "Mendengar",en: "Listen", wrong: ["Speak", "Talk"] },
+      { id: "Belajar",  en: "Study",  wrong: ["Play", "Teach"] },
+      { id: "Bermain",  en: "Play",   wrong: ["Study", "Work"] },
+      { id: "Memasak",  en: "Cook",   wrong: ["Eat", "Bake"] },
+    ]
+  },
+  level3: {
+    name: "Level 3 — Adjective",
+    spawnInterval: 2500, zombiesPerWave: 12,
+    words: [
+      { id: "Besar",   en: "Big",       wrong: ["Small", "Tall"] },
+      { id: "Kecil",   en: "Small",     wrong: ["Big", "Short"] },
+      { id: "Panas",   en: "Hot",       wrong: ["Cold", "Warm"] },
+      { id: "Dingin",  en: "Cold",      wrong: ["Hot", "Cool"] },
+      { id: "Cepat",   en: "Fast",      wrong: ["Slow", "Late"] },
+      { id: "Lambat",  en: "Slow",      wrong: ["Fast", "Quick"] },
+      { id: "Senang",  en: "Happy",     wrong: ["Sad", "Angry"] },
+      { id: "Sedih",   en: "Sad",       wrong: ["Happy", "Tired"] },
+      { id: "Pintar",  en: "Smart",     wrong: ["Dumb", "Lazy"] },
+      { id: "Cantik",  en: "Beautiful", wrong: ["Ugly", "Pretty"] },
+      { id: "Kuat",    en: "Strong",    wrong: ["Weak", "Brave"] },
+      { id: "Tinggi",  en: "Tall",      wrong: ["Short", "High"] },
+    ]
+  }
+};
+
+const TOTAL_LANES = 5;
+const ZOMBIE_START_X_PERCENT = 85;
+const HOUSE_X_PERCENT = 6;
+
+/* TANAMAN */
+const PLANT_SPRITES = [
+  `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="72" rx="20" ry="5" fill="rgba(0,0,0,0.3)"/>
+    <rect x="35" y="45" width="10" height="25" fill="#4a7c2f" rx="3"/>
+    <ellipse cx="30" cy="35" rx="12" ry="8" fill="#66bb44" transform="rotate(-20 30 35)"/>
+    <ellipse cx="50" cy="35" rx="12" ry="8" fill="#66bb44" transform="rotate(20 50 35)"/>
+    <circle cx="40" cy="35" r="18" fill="#7ed957"/>
+    <circle cx="34" cy="30" r="4" fill="white"/>
+    <circle cx="46" cy="30" r="4" fill="white"/>
+    <circle cx="34" cy="31" r="2.5" fill="black"/>
+    <circle cx="46" cy="31" r="2.5" fill="black"/>
+    <path d="M34 42 Q40 46 46 42" stroke="#2d5a27" stroke-width="2" fill="none"/>
+    <rect x="55" y="30" width="18" height="8" rx="2" fill="#444"/>
+    <rect x="70" y="32" width="8" height="4" rx="1" fill="#666"/>
+    <rect x="58" y="38" width="6" height="10" rx="1" fill="#8B4513"/>
+  </svg>`,
+  `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="72" rx="20" ry="5" fill="rgba(0,0,0,0.3)"/>
+    <rect x="35" y="45" width="10" height="25" fill="#4a7c2f" rx="3"/>
+    <g fill="#ffd700">
+      <ellipse cx="40" cy="15" rx="6" ry="10"/>
+      <ellipse cx="40" cy="55" rx="6" ry="10"/>
+      <ellipse cx="20" cy="35" rx="10" ry="6"/>
+      <ellipse cx="60" cy="35" rx="10" ry="6"/>
+      <ellipse cx="25" cy="20" rx="7" ry="7"/>
+      <ellipse cx="55" cy="20" rx="7" ry="7"/>
+      <ellipse cx="25" cy="50" rx="7" ry="7"/>
+      <ellipse cx="55" cy="50" rx="7" ry="7"/>
+    </g>
+    <circle cx="40" cy="35" r="15" fill="#8B4513"/>
+    <circle cx="34" cy="32" r="3" fill="white"/>
+    <circle cx="46" cy="32" r="3" fill="white"/>
+    <circle cx="34" cy="33" r="2" fill="black"/>
+    <circle cx="46" cy="33" r="2" fill="black"/>
+    <path d="M36 40 Q40 42 44 40" stroke="black" stroke-width="1.5" fill="none"/>
+    <rect x="55" y="28" width="20" height="14" rx="4" fill="#556B2F"/>
+    <rect x="72" y="30" width="6" height="10" rx="2" fill="#333"/>
+  </svg>`,
+  `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="72" rx="20" ry="5" fill="rgba(0,0,0,0.3)"/>
+    <rect x="35" y="50" width="10" height="20" fill="#4a7c2f" rx="3"/>
+    <path d="M20 45 Q20 15 40 15 Q60 15 60 45 Q50 50 40 45 Q30 50 20 45 Z" fill="#c94c9c"/>
+    <path d="M25 25 L30 32 L35 25 L40 32 L45 25 L50 32 L55 25" stroke="white" stroke-width="2" fill="none"/>
+    <circle cx="30" cy="20" r="3" fill="white"/>
+    <circle cx="50" cy="20" r="3" fill="white"/>
+    <circle cx="30" cy="21" r="2" fill="black"/>
+    <circle cx="50" cy="21" r="2" fill="black"/>
+    <rect x="58" y="32" width="20" height="10" rx="3" fill="#8B0000"/>
+    <rect x="56" y="36" width="6" height="6" fill="#444"/>
+  </svg>`,
+  `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="72" rx="20" ry="5" fill="rgba(0,0,0,0.3)"/>
+    <rect x="30" y="20" width="20" height="50" rx="10" fill="#2e8b57"/>
+    <rect x="15" y="35" width="15" height="8" rx="4" fill="#2e8b57"/>
+    <rect x="50" y="35" width="15" height="8" rx="4" fill="#2e8b57"/>
+    <line x1="30" y1="30" x2="30" y2="25" stroke="#ddd" stroke-width="2"/>
+    <line x1="35" y1="28" x2="35" y2="23" stroke="#ddd" stroke-width="2"/>
+    <line x1="45" y1="30" x2="45" y2="25" stroke="#ddd" stroke-width="2"/>
+    <line x1="50" y1="28" x2="50" y2="23" stroke="#ddd" stroke-width="2"/>
+    <circle cx="34" cy="42" r="3" fill="white"/>
+    <circle cx="46" cy="42" r="3" fill="white"/>
+    <circle cx="34" cy="43" r="2" fill="black"/>
+    <circle cx="46" cy="43" r="2" fill="black"/>
+    <path d="M36 50 Q40 52 44 50" stroke="black" stroke-width="1.5" fill="none"/>
+    <line x1="50" y1="35" x2="75" y2="35" stroke="#8B4513" stroke-width="3"/>
+    <path d="M50 32 Q60 35 50 38" fill="#8B4513"/>
+  </svg>`,
+  `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="72" rx="20" ry="5" fill="rgba(0,0,0,0.3)"/>
+    <rect x="35" y="45" width="10" height="25" fill="#4a7c2f" rx="3"/>
+    <circle cx="40" cy="35" r="18" fill="#87CEEB"/>
+    <circle cx="34" cy="30" r="4" fill="white"/>
+    <circle cx="46" cy="30" r="4" fill="white"/>
+    <circle cx="34" cy="31" r="2.5" fill="black"/>
+    <circle cx="46" cy="31" r="2.5" fill="black"/>
+    <path d="M34 42 Q40 46 46 42" stroke="#2d5a27" stroke-width="2" fill="none"/>
+    <text x="18" y="20" font-size="10">❄️</text>
+    <text x="52" y="20" font-size="10">❄️</text>
+    <rect x="55" y="30" width="18" height="10" rx="3" fill="#4682B4"/>
+    <rect x="71" y="32" width="6" height="6" rx="1" fill="#B0E0E6"/>
+  </svg>`
+];
+
+/* 8 TIPE ZOMBIE (visual saja, HP dihapus semua jadi 1) */
+const ZOMBIE_SPRITES = [
+  { name: "Basic", svg: `<svg viewBox="0 0 76 90" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="38" cy="85" rx="22" ry="4" fill="rgba(0,0,0,0.3)"/>
+    <rect x="22" y="65" width="10" height="20" rx="3" fill="#3d5014"/>
+    <rect x="44" y="65" width="10" height="20" rx="3" fill="#3d5014"/>
+    <rect x="20" y="82" width="14" height="6" rx="2" fill="#222"/>
+    <rect x="42" y="82" width="14" height="6" rx="2" fill="#222"/>
+    <rect x="20" y="38" width="36" height="30" rx="6" fill="#6b8e23"/>
+    <rect x="8" y="42" width="14" height="8" rx="3" fill="#6b8e23"/>
+    <rect x="54" y="42" width="14" height="8" rx="3" fill="#6b8e23"/>
+    <circle cx="38" cy="25" r="20" fill="#7ba428"/>
+    <circle cx="30" cy="22" r="5" fill="white"/>
+    <circle cx="48" cy="22" r="5" fill="white"/>
+    <circle cx="31" cy="23" r="3" fill="#111"/>
+    <circle cx="49" cy="23" r="3" fill="#111"/>
+    <path d="M28 35 Q38 42 48 35" stroke="#222" stroke-width="2" fill="none"/>
+    <rect x="30" y="32" width="3" height="5" fill="white"/>
+    <rect x="38" y="33" width="3" height="5" fill="white"/>
+    <rect x="46" y="32" width="3" height="5" fill="white"/>
+    <path d="M20 15 Q25 5 30 12 Q35 3 40 12 Q45 5 50 12 Q55 5 58 15" stroke="#3d5014" stroke-width="3" fill="none"/>
+  </svg>` },
+  { name: "Punk", svg: `<svg viewBox="0 0 76 90" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="38" cy="85" rx="22" ry="4" fill="rgba(0,0,0,0.3)"/>
+    <rect x="22" y="65" width="10" height="20" rx="3" fill="#2d2d2d"/>
+    <rect x="44" y="65" width="10" height="20" rx="3" fill="#2d2d2d"/>
+    <rect x="20" y="82" width="14" height="6" rx="2" fill="#111"/>
+    <rect x="42" y="82" width="14" height="6" rx="2" fill="#111"/>
+    <rect x="20" y="38" width="36" height="30" rx="6" fill="#333"/>
+    <rect x="8" y="42" width="14" height="8" rx="3" fill="#333"/>
+    <rect x="54" y="42" width="14" height="8" rx="3" fill="#333"/>
+    <circle cx="38" cy="25" r="20" fill="#8fbc8f"/>
+    <circle cx="30" cy="22" r="5" fill="white"/>
+    <circle cx="48" cy="22" r="5" fill="white"/>
+    <circle cx="31" cy="23" r="3" fill="#111"/>
+    <circle cx="49" cy="23" r="3" fill="#111"/>
+    <path d="M28 35 Q38 42 48 35" stroke="#222" stroke-width="2" fill="none"/>
+    <rect x="30" y="32" width="3" height="5" fill="white"/>
+    <rect x="46" y="32" width="3" height="5" fill="white"/>
+    <path d="M28 10 L32 0 L36 10 L40 0 L44 10 L48 0 L52 10" fill="#ff1493" stroke="#8b0060" stroke-width="1"/>
+    <circle cx="38" cy="55" r="3" fill="#ffd700"/>
+    <circle cx="30" cy="50" r="2" fill="#ffd700"/>
+    <circle cx="46" cy="50" r="2" fill="#ffd700"/>
+  </svg>` },
+  { name: "Chef", svg: `<svg viewBox="0 0 76 90" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="38" cy="85" rx="22" ry="4" fill="rgba(0,0,0,0.3)"/>
+    <rect x="22" y="65" width="10" height="20" rx="3" fill="#3d5014"/>
+    <rect x="44" y="65" width="10" height="20" rx="3" fill="#3d5014"/>
+    <rect x="20" y="82" width="14" height="6" rx="2" fill="#222"/>
+    <rect x="42" y="82" width="14" height="6" rx="2" fill="#222"/>
+    <rect x="20" y="38" width="36" height="30" rx="6" fill="#f5f5dc"/>
+    <rect x="8" y="42" width="14" height="8" rx="3" fill="#f5f5dc"/>
+    <rect x="54" y="42" width="14" height="8" rx="3" fill="#f5f5dc"/>
+    <rect x="26" y="42" width="24" height="22" rx="2" fill="white" opacity="0.8"/>
+    <circle cx="38" cy="25" r="20" fill="#8fbc8f"/>
+    <circle cx="30" cy="22" r="5" fill="white"/>
+    <circle cx="48" cy="22" r="5" fill="white"/>
+    <circle cx="31" cy="23" r="3" fill="#111"/>
+    <circle cx="49" cy="23" r="3" fill="#111"/>
+    <path d="M28 35 Q38 42 48 35" stroke="#222" stroke-width="2" fill="none"/>
+    <rect x="30" y="32" width="3" height="5" fill="white"/>
+    <rect x="46" y="32" width="3" height="5" fill="white"/>
+    <ellipse cx="38" cy="8" rx="22" ry="8" fill="white"/>
+    <rect x="18" y="8" width="40" height="10" fill="white" stroke="#ddd" stroke-width="1"/>
+    <circle cx="38" cy="5" r="6" fill="white"/>
+  </svg>` },
+  { name: "Profesor", svg: `<svg viewBox="0 0 76 90" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="38" cy="85" rx="22" ry="4" fill="rgba(0,0,0,0.3)"/>
+    <rect x="22" y="65" width="10" height="20" rx="3" fill="#1a1a3e"/>
+    <rect x="44" y="65" width="10" height="20" rx="3" fill="#1a1a3e"/>
+    <rect x="20" y="82" width="14" height="6" rx="2" fill="#111"/>
+    <rect x="42" y="82" width="14" height="6" rx="2" fill="#111"/>
+    <rect x="20" y="38" width="36" height="30" rx="6" fill="#2c2c54"/>
+    <rect x="8" y="42" width="14" height="8" rx="3" fill="#2c2c54"/>
+    <rect x="54" y="42" width="14" height="8" rx="3" fill="#2c2c54"/>
+    <polygon points="38,38 34,55 42,55" fill="#8b0000"/>
+    <circle cx="38" cy="25" r="20" fill="#8fbc8f"/>
+    <circle cx="30" cy="22" r="5" fill="white"/>
+    <circle cx="48" cy="22" r="5" fill="white"/>
+    <circle cx="31" cy="23" r="3" fill="#111"/>
+    <circle cx="49" cy="23" r="3" fill="#111"/>
+    <circle cx="30" cy="22" r="7" fill="none" stroke="#333" stroke-width="2"/>
+    <circle cx="48" cy="22" r="7" fill="none" stroke="#333" stroke-width="2"/>
+    <line x1="36" y1="22" x2="42" y2="22" stroke="#333" stroke-width="2"/>
+    <path d="M28 35 Q38 40 48 35" stroke="#222" stroke-width="2" fill="none"/>
+    <rect x="30" y="32" width="3" height="5" fill="white"/>
+    <rect x="46" y="32" width="3" height="5" fill="white"/>
+    <path d="M20 12 Q25 8 30 12 Q35 8 40 12 Q45 8 50 12 Q55 8 58 12" stroke="#ccc" stroke-width="3" fill="none"/>
+  </svg>` },
+  { name: "Detektif", svg: `<svg viewBox="0 0 76 90" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="38" cy="85" rx="22" ry="4" fill="rgba(0,0,0,0.3)"/>
+    <rect x="22" y="65" width="10" height="20" rx="3" fill="#5c4033"/>
+    <rect x="44" y="65" width="10" height="20" rx="3" fill="#5c4033"/>
+    <rect x="20" y="82" width="14" height="6" rx="2" fill="#222"/>
+    <rect x="42" y="82" width="14" height="6" rx="2" fill="#222"/>
+    <rect x="20" y="38" width="36" height="30" rx="6" fill="#8b6f47"/>
+    <rect x="8" y="42" width="14" height="8" rx="3" fill="#8b6f47"/>
+    <rect x="54" y="42" width="14" height="8" rx="3" fill="#8b6f47"/>
+    <rect x="34" y="40" width="8" height="26" fill="#5c4033"/>
+    <circle cx="38" cy="25" r="20" fill="#8fbc8f"/>
+    <circle cx="30" cy="22" r="5" fill="white"/>
+    <circle cx="48" cy="22" r="5" fill="white"/>
+    <circle cx="31" cy="23" r="3" fill="#111"/>
+    <circle cx="49" cy="23" r="3" fill="#111"/>
+    <path d="M28 35 Q38 40 48 35" stroke="#222" stroke-width="2" fill="none"/>
+    <ellipse cx="38" cy="12" rx="26" ry="6" fill="#3a2a1a"/>
+    <path d="M14 12 Q14 0 38 0 Q62 0 62 12 Z" fill="#5c4033"/>
+    <rect x="14" y="10" width="48" height="4" fill="#3a2a1a"/>
+  </svg>` },
+  { name: "Ninja", svg: `<svg viewBox="0 0 76 90" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="38" cy="85" rx="22" ry="4" fill="rgba(0,0,0,0.3)"/>
+    <rect x="22" y="65" width="10" height="20" rx="3" fill="#1a1a1a"/>
+    <rect x="44" y="65" width="10" height="20" rx="3" fill="#1a1a1a"/>
+    <rect x="20" y="82" width="14" height="6" rx="2" fill="#000"/>
+    <rect x="42" y="82" width="14" height="6" rx="2" fill="#000"/>
+    <rect x="20" y="38" width="36" height="30" rx="6" fill="#222"/>
+    <rect x="8" y="42" width="14" height="8" rx="3" fill="#222"/>
+    <rect x="54" y="42" width="14" height="8" rx="3" fill="#222"/>
+    <circle cx="38" cy="25" r="20" fill="#8fbc8f"/>
+    <rect x="18" y="18" width="40" height="14" fill="#8b0000"/>
+    <circle cx="30" cy="22" r="4" fill="white"/>
+    <circle cx="48" cy="22" r="4" fill="white"/>
+    <circle cx="31" cy="23" r="2.5" fill="#111"/>
+    <circle cx="49" cy="23" r="2.5" fill="#111"/>
+    <rect x="18" y="10" width="40" height="6" fill="#8b0000"/>
+    <path d="M58 13 L70 8 L68 16 Z" fill="#8b0000"/>
+    <rect x="60" y="30" width="4" height="50" fill="#888" transform="rotate(15 62 55)"/>
+    <rect x="58" y="30" width="8" height="6" fill="#8b4513" transform="rotate(15 62 33)"/>
+  </svg>` },
+  { name: "Robot", svg: `<svg viewBox="0 0 76 90" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="38" cy="85" rx="22" ry="4" fill="rgba(0,0,0,0.3)"/>
+    <rect x="22" y="65" width="10" height="20" rx="3" fill="#444"/>
+    <rect x="44" y="65" width="10" height="20" rx="3" fill="#444"/>
+    <rect x="20" y="82" width="14" height="6" rx="2" fill="#222"/>
+    <rect x="42" y="82" width="14" height="6" rx="2" fill="#222"/>
+    <rect x="20" y="38" width="36" height="30" rx="6" fill="#708090"/>
+    <rect x="8" y="42" width="14" height="8" rx="3" fill="#708090"/>
+    <rect x="54" y="42" width="14" height="8" rx="3" fill="#708090"/>
+    <circle cx="30" cy="55" r="3" fill="#ff0000"/>
+    <circle cx="46" cy="55" r="3" fill="#00ff00"/>
+    <circle cx="38" cy="25" r="20" fill="#a9a9a9"/>
+    <circle cx="30" cy="22" r="6" fill="#111"/>
+    <circle cx="48" cy="22" r="6" fill="#111"/>
+    <circle cx="30" cy="22" r="3" fill="#00ffff"/>
+    <circle cx="48" cy="22" r="3" fill="#00ffff"/>
+    <rect x="28" y="32" width="20" height="6" fill="#333"/>
+    <line x1="32" y1="32" x2="32" y2="38" stroke="#888"/>
+    <line x1="38" y1="32" x2="38" y2="38" stroke="#888"/>
+    <line x1="44" y1="32" x2="44" y2="38" stroke="#888"/>
+    <line x1="38" y1="5" x2="38" y2="0" stroke="#333" stroke-width="2"/>
+    <circle cx="38" cy="0" r="4" fill="#ff0000"/>
+    <circle cx="38" cy="0" r="2" fill="#ffff00"/>
+  </svg>` },
+  { name: "Boss", svg: `<svg viewBox="0 0 90 100" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="45" cy="95" rx="28" ry="5" fill="rgba(0,0,0,0.3)"/>
+    <rect x="26" y="72" width="12" height="22" rx="3" fill="#4a0000"/>
+    <rect x="52" y="72" width="12" height="22" rx="3" fill="#4a0000"/>
+    <rect x="24" y="90" width="16" height="7" rx="2" fill="#111"/>
+    <rect x="50" y="90" width="16" height="7" rx="2" fill="#111"/>
+    <path d="M18 50 L14 90 L76 90 L72 50 Z" fill="#4a0000"/>
+    <rect x="22" y="42" width="46" height="34" rx="8" fill="#8b0000"/>
+    <rect x="6" y="46" width="18" height="10" rx="3" fill="#8b0000"/>
+    <rect x="66" y="46" width="18" height="10" rx="3" fill="#8b0000"/>
+    <circle cx="45" cy="28" r="24" fill="#a02020"/>
+    <circle cx="36" cy="24" r="6" fill="#ffdd00"/>
+    <circle cx="54" cy="24" r="6" fill="#ffdd00"/>
+    <circle cx="37" cy="25" r="3" fill="#111"/>
+    <circle cx="55" cy="25" r="3" fill="#111"/>
+    <path d="M32 38 Q45 48 58 38" stroke="#111" stroke-width="2.5" fill="none"/>
+    <rect x="35" y="34" width="4" height="7" fill="white"/>
+    <rect x="44" y="36" width="4" height="7" fill="white"/>
+    <rect x="53" y="34" width="4" height="7" fill="white"/>
+    <line x1="50" y1="15" x2="55" y2="22" stroke="#4a0000" stroke-width="2"/>
+    <path d="M25 8 L28 -2 L33 5 L38 -4 L43 5 L48 -2 L53 5 L58 -2 L65 8 Z" fill="#ffd700" stroke="#8a5a00" stroke-width="1"/>
+    <circle cx="28" cy="-2" r="2" fill="#ff0000"/>
+    <circle cx="38" cy="-4" r="2" fill="#00ff00"/>
+    <circle cx="48" cy="-2" r="2" fill="#0000ff"/>
+    <circle cx="58" cy="-2" r="2" fill="#ff00ff"/>
+    <rect x="25" y="6" width="40" height="4" fill="#ffd700"/>
+  </svg>` }
+];
+
+/* ACHIEVEMENTS */
+const ACHIEVEMENTS = [
+  { id: "first_kill",   icon: "🎯", name: "First Blood",        desc: "Kalahkan zombie pertama",              unlocked: false },
+  { id: "kill_10",      icon: "🔫", name: "Sharp Shooter",      desc: "Kalahkan 10 zombie",                   unlocked: false },
+  { id: "kill_25",      icon: "💥", name: "Zombie Hunter",      desc: "Kalahkan 25 zombie",                   unlocked: false },
+  { id: "kill_50",      icon: "🏹", name: "Exterminator",       desc: "Kalahkan 50 zombie",                   unlocked: false },
+  { id: "boss_slayer",  icon: "👑", name: "Boss Slayer",        desc: "Kalahkan 1 Boss Zombie",               unlocked: false },
+  { id: "boss_10",      icon: "⚔️", name: "Boss Hunter",        desc: "Kalahkan 10 Boss Zombie",              unlocked: false },
+  { id: "robot_5",      icon: "🤖", name: "Robot Destroyer",    desc: "Kalahkan 5 Robot Zombie",              unlocked: false },
+  { id: "ninja_5",      icon: "🥷", name: "Ninja Slayer",       desc: "Kalahkan 5 Ninja Zombie",              unlocked: false },
+  { id: "perfect_10",   icon: "✨", name: "Perfect Streak",     desc: "Jawab benar 10x berturut-turut",       unlocked: false },
+  { id: "no_damage",    icon: "🛡️", name: "Untouchable",        desc: "Selesaikan level 1 tanpa kehilangan nyawa", unlocked: false },
+  { id: "score_500",    icon: "⭐", name: "Score Master",       desc: "Kumpulkan 500 poin",                   unlocked: false },
+  { id: "win_game",     icon: "🏆", name: "Champion",           desc: "Selesaikan semua level",               unlocked: false },
+];
+let achievements = JSON.parse(JSON.stringify(ACHIEVEMENTS));
+
+let state = {};
+const $ = id => document.getElementById(id);
+
+function initState() {
+  return {
+    score: 0, lives: 3, sun: 50, wave: 1, currentLevel: 1,
+    zombiesKilled: 0, running: false,
+    zombies: [], plants: [],
+    currentLevelData: null, activeZombie: null,
+    spawnTimer: null, moveTimer: null,
+    zombiesThisLevel: 0, levelEnding: false,
+    killCount: 0, bossKillCount: 0, robotKillCount: 0, ninjaKillCount: 0,
+    correctStreak: 0, maxCorrectStreak: 0, lostLifeThisLevel: false
+  };
+}
+
+function unlockAchievement(id) {
+  const ach = achievements.find(a => a.id === id);
+  if (!ach || ach.unlocked) return;
+  ach.unlocked = true;
+  showAchievementPopup(ach);
+  renderAchList();
+  Sound.ach();
+  state.score += 50;
+  updateHUD();
+}
+
+function showAchievementPopup(ach) {
+  const popup = $('achievementPopup');
+  $('achPopupName').textContent = ach.name;
+  $('achPopupDesc').textContent = ach.desc;
+  popup.querySelector('.ach-icon').textContent = ach.icon;
+  popup.classList.add('show');
+  clearTimeout(popup._timer);
+  popup._timer = setTimeout(() => popup.classList.remove('show'), 3200);
+}
+
+function renderAchList() {
+  const list = $('achList');
+  list.innerHTML = '';
+  achievements.forEach(a => {
+    const item = document.createElement('div');
+    item.className = 'ach-item' + (a.unlocked ? ' unlocked' : '');
+    item.innerHTML = `
+      <div class="ai-icon">${a.unlocked ? a.icon : '🔒'}</div>
+      <div class="ai-text">
+        <div class="ai-name">${a.name}</div>
+        <div class="ai-desc">${a.desc}</div>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function toggleAchPanel() { $('achPanel').classList.toggle('hidden'); }
+
+function checkAchievements(z) {
+  if (state.killCount >= 1) unlockAchievement('first_kill');
+  if (state.killCount >= 10) unlockAchievement('kill_10');
+  if (state.killCount >= 25) unlockAchievement('kill_25');
+  if (state.killCount >= 50) unlockAchievement('kill_50');
+  if (z && z.type === 7) {
+    state.bossKillCount++;
+    if (state.bossKillCount >= 1) unlockAchievement('boss_slayer');
+    if (state.bossKillCount >= 10) unlockAchievement('boss_10');
+  }
+  if (z && z.type === 6) {
+    state.robotKillCount++;
+    if (state.robotKillCount >= 5) unlockAchievement('robot_5');
+  }
+  if (z && z.type === 5) {
+    state.ninjaKillCount++;
+    if (state.ninjaKillCount >= 5) unlockAchievement('ninja_5');
+  }
+  if (state.maxCorrectStreak >= 10) unlockAchievement('perfect_10');
+  if (state.score >= 500) unlockAchievement('score_500');
+}
+
+/* BUILD LANES */
+function buildLanes() {
+  const lanes = $('lanes');
+  const houseLine = $('houseLine');
+  lanes.innerHTML = '';
+  lanes.appendChild(houseLine);
+  state.plants = [];
+  for (let i = 0; i < TOTAL_LANES; i++) {
+    const lane = document.createElement('div');
+    lane.className = 'lane';
+    lane.dataset.lane = i;
+    const plant = document.createElement('div');
+    plant.className = 'plant';
+    plant.innerHTML = PLANT_SPRITES[i % PLANT_SPRITES.length];
+    lane.appendChild(plant);
+    state.plants.push({ lane: i, el: plant });
+    lanes.appendChild(lane);
+  }
+}
+
+function startGame() {
+  Sound.init();
+  state = initState();
+  state.running = true;
+  $('startScreen').classList.add('hidden');
+  $('gameOverScreen').classList.add('hidden');
+  $('winScreen').classList.add('hidden');
+  buildLanes();
+  renderAchList();
+  updateHUD();
+  loadLevel(1);
+}
+
+function restartGame() { location.reload(); }
+
+function loadLevel(levelNum) {
+  state.currentLevel = levelNum;
+  const key = 'level' + levelNum;
+  if (!BANK_SOAL[key]) { winGame(); return; }
+  state.currentLevelData = BANK_SOAL[key];
+  state.wave = levelNum;
+  state.zombiesThisLevel = 0;
+  state.levelEnding = false;
+  state.lostLifeThisLevel = false;
+  $('waveInfo').textContent = state.currentLevelData.name;
+  Sound.levelUp();
+  updateHUD();
+  updateAnswerUI();
+  startSpawner();
+  startMover();
+}
+
+function startSpawner() {
+  clearInterval(state.spawnTimer);
+  spawnZombie();
+  state.spawnTimer = setInterval(() => {
+    if (!state.running) return;
+    if (state.levelEnding) return;
+    if (state.zombiesThisLevel >= state.currentLevelData.zombiesPerWave) {
+      checkLevelEnd();
+      return;
+    }
+    spawnZombie();
+  }, state.currentLevelData.spawnInterval);
+}
+
+function spawnZombie() {
+  const data = state.currentLevelData;
+  if (state.zombiesThisLevel >= data.zombiesPerWave) return;
+  const lane = Math.floor(Math.random() * TOTAL_LANES);
+  const word = data.words[Math.floor(Math.random() * data.words.length)];
+
+  let typeIdx;
+  const rand = Math.random();
+  if (state.currentLevel === 1) typeIdx = rand < 0.5 ? 0 : rand < 0.8 ? 1 : 2;
+  else if (state.currentLevel === 2) typeIdx = rand < 0.3 ? 0 : rand < 0.5 ? 1 : rand < 0.65 ? 2 : rand < 0.8 ? 3 : rand < 0.9 ? 4 : 5;
+  else typeIdx = rand < 0.15 ? 0 : rand < 0.3 ? 1 : rand < 0.45 ? 2 : rand < 0.6 ? 3 : rand < 0.72 ? 4 : rand < 0.85 ? 5 : rand < 0.95 ? 6 : 7;
+
+  const zType = ZOMBIE_SPRITES[typeIdx];
+  const laneEl = $('lanes').querySelectorAll('.lane')[lane];
+
+  const zombie = document.createElement('div');
+  zombie.className = 'zombie';
+  zombie.style.left = ZOMBIE_START_X_PERCENT + '%';
+  zombie.innerHTML = `
+    <div class="word-label">${word.id}</div>
+    ${zType.svg}
+  `;
+  laneEl.appendChild(zombie);
+
+  const zObj = {
+    el: zombie, lane: lane, x: ZOMBIE_START_X_PERCENT,
+    correct: word.en, wrong: word.wrong, wordId: word.id,
+    answered: false, type: typeIdx, typeName: zType.name
+  };
+  state.zombies.push(zObj);
+  state.zombiesThisLevel++;
+  Sound.playZombieSound(typeIdx);
+  updateAnswerUI();
+}
+
+function startMover() {
+  clearInterval(state.moveTimer);
+  state.moveTimer = setInterval(() => {
+    if (!state.running) return;
+    for (let i = state.zombies.length - 1; i >= 0; i--) {
+      const z = state.zombies[i];
+      if (z.answered) continue;
+      z.x -= 0.25;
+      z.el.style.left = z.x + '%';
+      if (z.x <= HOUSE_X_PERCENT + 3) {
+        z.el.remove();
+        state.zombies.splice(i, 1);
+        loseLife();
+      }
+    }
+  }, 30);
+}
+
+function updateAnswerUI() {
+  const bottom = $('bottomUI');
+  bottom.innerHTML = '';
+  const active = state.zombies.filter(z => !z.answered).sort((a, b) => a.x - b.x)[0];
+  if (!active) {
+    state.activeZombie = null;
+    const info = document.createElement('div');
+    info.style.color = 'white';
+    info.style.fontSize = 'clamp(12px, 1.3vw, 18px)';
+    info.textContent = '⏳ Menunggu zombie berikutnya...';
+    bottom.appendChild(info);
+    return;
+  }
+  state.activeZombie = active;
+
+  const label = document.createElement('div');
+  label.className = 'q-label';
+  label.innerHTML = `🧟 <b>${active.typeName}</b> bawa: <span>"${active.wordId}"</span>`;
+  bottom.appendChild(label);
+
+  const options = [
+    { text: active.correct, correct: true },
+    ...active.wrong.map(w => ({ text: w, correct: false }))
+  ];
+  options.sort(() => Math.random() - 0.5);
+
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'answer-btn';
+    btn.textContent = opt.text;
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handleAnswer(btn, opt.correct);
+    });
+    bottom.appendChild(btn);
+  });
+}
+
+function handleAnswer(btn, isCorrect) {
+  const z = state.activeZombie;
+  if (!z || z.answered) return;
+  z.answered = true;
+  $('bottomUI').querySelectorAll('.answer-btn').forEach(b => b.disabled = true);
+
+  if (isCorrect) {
+    btn.classList.add('correct');
+    Sound.shoot();
+    Sound.correct();
+    state.correctStreak++;
+    if (state.correctStreak > state.maxCorrectStreak) state.maxCorrectStreak = state.correctStreak;
+
+    shootAtZombie(z);
+
+    state.score += 10 + (state.currentLevel * 5);
+    state.sun += 25;
+    state.zombiesKilled++;
+    state.killCount++;
+    updateHUD();
+    showFloat('+' + (10 + state.currentLevel * 5), z.x, getLaneY(z.lane), '#44ff44');
+    splat(z);
+    Sound.playDeathSound(z.type);
+    checkAchievements(z);
+
+    // SEKALI TEMBAK LANGSUNG MATI - animasi seragam
+    setTimeout(() => {
+      z.el.classList.add('dying');
+      setTimeout(() => {
+        if (z.el.parentNode) z.el.remove();
+        const idx = state.zombies.indexOf(z);
+        if (idx >= 0) state.zombies.splice(idx, 1);
+        if (state.activeZombie === z) state.activeZombie = null;
+        updateAnswerUI();
+        checkLevelEnd();
+      }, 700);
+    }, 200);
+
+  } else {
+    btn.classList.add('wrong');
+    Sound.wrong();
+    state.correctStreak = 0;
+    state.lostLifeThisLevel = true;
+
+    z.x = Math.max(HOUSE_X_PERCENT + 4, z.x - 6);
+    z.el.style.left = z.x + '%';
+    z.el.classList.add('hit');
+    setTimeout(() => z.el.classList.remove('hit'), 300);
+    showFloat('-1 ❤️', z.x, getLaneY(z.lane), '#ff4444');
+    loseLife();
+
+    setTimeout(() => {
+      $('bottomUI').querySelectorAll('.answer-btn').forEach(b => {
+        if (b.textContent === z.correct) b.classList.add('correct');
+      });
+    }, 200);
+
+    setTimeout(() => {
+      if (z.el.parentNode) z.el.remove();
+      const idx = state.zombies.indexOf(z);
+      if (idx >= 0) state.zombies.splice(idx, 1);
+      if (state.activeZombie === z) state.activeZombie = null;
+      updateAnswerUI();
+      checkLevelEnd();
+    }, 1200);
+  }
+}
+
+function getLaneY(lane) {
+  const laneEl = $('lanes').querySelectorAll('.lane')[lane];
+  const lanesRect = $('lanes').getBoundingClientRect();
+  const laneRect = laneEl.getBoundingClientRect();
+  return laneRect.top - lanesRect.top + laneRect.height / 2 - 30;
+}
+
+function shootAtZombie(z) {
+  const plant = state.plants[z.lane];
+  if (plant) {
+    plant.el.classList.add('shoot');
+    setTimeout(() => plant.el.classList.remove('shoot'), 200);
+  }
+
+  const lanesEl = $('lanes');
+  const lanesRect = lanesEl.getBoundingClientRect();
+  const laneEl = lanesEl.querySelectorAll('.lane')[z.lane];
+  const laneRect = laneEl.getBoundingClientRect();
+
+  const startXPx = 90;
+  const startYPx = laneRect.top - lanesRect.top + laneRect.height / 2 - 10;
+  const targetXPx = (z.x / 100) * lanesRect.width + 30;
+
+  const muzzle = document.createElement('div');
+  muzzle.className = 'muzzle';
+  muzzle.style.left = (startXPx + 45) + 'px';
+  muzzle.style.top = (startYPx - 5) + 'px';
+  lanesEl.appendChild(muzzle);
+  setTimeout(() => muzzle.remove(), 200);
+
+  const bullet = document.createElement('div');
+  bullet.className = 'bullet';
+  bullet.textContent = '💥';
+  bullet.style.left = startXPx + 'px';
+  bullet.style.top = startYPx + 'px';
+  lanesEl.appendChild(bullet);
+
+  let bx = startXPx;
+  const anim = setInterval(() => {
+    bx += 30;
+    bullet.style.left = bx + 'px';
+    if (bx >= targetXPx) {
+      clearInterval(anim);
+      bullet.remove();
+    }
+  }, 16);
+}
+
+function splat(z) {
+  const lanesEl = $('lanes');
+  const lanesRect = lanesEl.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'splat';
+  el.style.left = (z.x / 100 * lanesRect.width + 15) + 'px';
+  el.style.top = (getLaneY(z.lane) + 10) + 'px';
+  lanesEl.appendChild(el);
+  setTimeout(() => el.remove(), 600);
+}
+
+function loseLife() {
+  state.lives--;
+  updateHUD();
+  if (state.lives <= 0) gameOver();
+}
+
+function checkLevelEnd() {
+  if (state.levelEnding) return;
+  if (state.zombiesThisLevel < state.currentLevelData.zombiesPerWave) return;
+  if (state.zombies.length > 0) return;
+
+  state.levelEnding = true;
+  clearInterval(state.spawnTimer);
+  clearInterval(state.moveTimer);
+
+  if (state.currentLevel === 1 && !state.lostLifeThisLevel) {
+    unlockAchievement('no_damage');
+  }
+
+  setTimeout(() => {
+    if (!state.running) return;
+    if (state.currentLevel < 3) {
+      showFloat('LEVEL ' + (state.currentLevel + 1) + '!', 50, 250, '#ffd700');
+      setTimeout(() => loadLevel(state.currentLevel + 1), 1000);
+    } else {
+      winGame();
+    }
+  }, 800);
+}
+
+function updateHUD() {
+  $('score').textContent = state.score;
+  $('lives').textContent = state.lives;
+  $('sun').textContent = state.sun;
+  $('wave').textContent = state.wave;
+}
+
+function showFloat(text, xPercent, y, color) {
+  const lanesEl = $('lanes');
+  const lanesRect = lanesEl.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float-text';
+  el.textContent = text;
+  el.style.left = (xPercent / 100 * lanesRect.width) + 'px';
+  el.style.top = y + 'px';
+  el.style.color = color;
+  lanesEl.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+function gameOver() {
+  state.running = false;
+  clearInterval(state.spawnTimer);
+  clearInterval(state.moveTimer);
+  Sound.gameOver();
+  $('finalScore').textContent = 'Skor Akhir: ' + state.score;
+  $('finalMsg').textContent = `Kamu berhasil mengalahkan ${state.zombiesKilled} zombie kosakata!`;
+  $('gameOverScreen').classList.remove('hidden');
+}
+
+function winGame() {
+  state.running = false;
+  clearInterval(state.spawnTimer);
+  clearInterval(state.moveTimer);
+  Sound.win();
+  unlockAchievement('win_game');
+  const unlockedCount = achievements.filter(a => a.unlocked).length;
+  $('winScore').textContent = 'Skor Akhir: ' + state.score;
+  $('winAch').textContent = `Achievement terbuka: ${unlockedCount}/${achievements.length}`;
+  $('winScreen').classList.remove('hidden');
+}
+
+window.addEventListener('load', () => {
+  state = initState();
+  document.body.addEventListener('click', () => Sound.init(), { once: true });
+  document.body.addEventListener('touchstart', () => Sound.init(), { once: true });
+});
+</script>
+</body>
+</html>
